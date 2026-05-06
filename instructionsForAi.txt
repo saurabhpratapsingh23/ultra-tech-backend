@@ -1,0 +1,415 @@
+You are a senior backend architect and Node.js engineer.
+
+Build a production-ready backend for an AI-powered multilingual construction assistance platform called:
+
+“UltraTech Connect”
+
+Tech stack:
+- Node.js
+- Express.js
+- MongoDB
+- Mongoose
+- JWT Authentication
+- Multer
+- Axios
+- Python FastAPI AI microservice integration
+
+Architecture style:
+- Modular
+- Service-oriented
+- REST API
+- Scalable and frontend-driven
+
+IMPORTANT:
+This backend MUST strictly follow the frontend handoff contract and API structures.
+
+---------------------------------------------------
+PROJECT OVERVIEW
+---------------------------------------------------
+
+This platform helps users identify construction-related issues such as:
+- Cracks
+- Waterproofing
+- Dampness
+- Leakage
+- Tiling issues
+
+Users can:
+1. Manually browse issue categories and products
+2. Use AI diagnostics with image + text
+3. Chat with AI assistant
+4. Escalate unresolved queries to support team
+
+The system must support multilingual behavior based on user preference.
+
+---------------------------------------------------
+AUTHENTICATION REQUIREMENTS
+---------------------------------------------------
+
+Users sign up using:
+- name
+- email
+- mobile number
+- strong password
+- preferred language
+
+Users can login using:
+1. Email + password
+2. Mobile + OTP
+3. OAuth 2.0 (future-ready structure)
+
+Use:
+- bcrypt
+- JWT access token
+- refresh token placeholder
+
+Routes:
+POST /api/v1/auth/signup
+POST /api/v1/auth/login
+POST /api/v1/auth/send-otp
+POST /api/v1/auth/login/otp
+POST /api/v1/auth/logout
+POST /api/v1/auth/refresh
+
+Frontend-compatible auth response format:
+{
+  "user": {
+    "id": "...",
+    "name": "...",
+    "email": "...",
+    "preferredLanguage": "en"
+  },
+  "accessToken": "...",
+  "refreshToken": "..."
+}
+
+---------------------------------------------------
+LANGUAGE REQUIREMENTS
+---------------------------------------------------
+
+Each user has:
+preferredLanguage
+
+All:
+- chatbot responses
+- AI responses
+- product text
+- app content
+
+must respond in user's preferred language.
+
+Supported:
+- en
+- hi
+- mr
+- ta
+- te
+- kn
+
+---------------------------------------------------
+DOMAIN MODELS
+---------------------------------------------------
+
+Create Mongoose models:
+
+1. User
+- name
+- email
+- mobile
+- passwordHash
+- oauthProviders[]
+- preferredLanguage
+- role
+- isEmailVerified
+- isMobileVerified
+- timestamps
+
+2. PainArea
+- key
+- displayName { en, hi }
+- subCategories[]
+- isActive
+
+3. Product
+- nameKey
+- displayName { en, hi }
+- categoryKey
+- subCategoryKey
+- description { en, hi }
+- applicationSteps { en[], hi[] }
+- marketPrice
+- buyLink
+- images[]
+- isActive
+
+4. Tutorial
+- title
+- categoryKey
+- duration
+- thumbnailUrl
+- videoUrl
+- isActive
+
+5. AIRequest
+- userId
+- inputType
+- imageUrl
+- userProblemText
+- detectedCategory
+- detectedSubCategory
+- detectedIssueType
+- confidenceScore
+- aiModelVersion
+- matchFound
+- status
+- timestamps
+
+6. ChatbotConversation
+- userId
+- aiRequestId
+- messages[]
+- status
+- timestamps
+
+7. SupportTicket
+- userId
+- aiRequestId
+- issueSummary
+- imageUrl
+- status
+- timestamps
+
+8. Feedback
+- userId
+- subject
+- message
+- status
+- timestamps
+
+---------------------------------------------------
+MANUAL FLOW APIs
+---------------------------------------------------
+
+Frontend must NOT use hardcoded data.
+
+Create APIs:
+
+GET /api/v1/pain-areas
+GET /api/v1/pain-areas/:areaId/subcategories
+
+GET /api/v1/products
+Supports:
+- areaId
+- subId
+- search
+- pagination
+
+GET /api/v1/products/:productId
+
+Response format:
+{
+  "items": [...],
+  "pagination": {
+    "page": 1,
+    "limit": 20,
+    "total": 100
+  }
+}
+
+---------------------------------------------------
+TUTORIAL APIs
+---------------------------------------------------
+
+GET /api/v1/tutorials
+
+Supports:
+- categoryId
+- search
+
+---------------------------------------------------
+PROFILE APIs
+---------------------------------------------------
+
+GET /api/v1/users/me
+PATCH /api/v1/users/me
+
+---------------------------------------------------
+FEEDBACK APIs
+---------------------------------------------------
+
+POST /api/v1/feedback
+GET /api/v1/feedback (admin)
+
+---------------------------------------------------
+AI DIAGNOSTIC SYSTEM
+---------------------------------------------------
+
+IMPORTANT:
+Frontend must NEVER call Gemini/OpenAI directly.
+
+AI keys remain backend-only.
+
+Create:
+POST /api/v1/ai/diagnostics
+
+Supports:
+- multipart/form-data
+- image upload
+- text input
+
+Flow:
+1. Upload image using multer
+2. Store in uploads/
+3. Call Python FastAPI AI service
+4. AI classifies:
+   - category
+   - subcategory
+   - issue type
+5. Backend maps AI output to Product DB
+6. Return stable frontend-compatible response
+
+Response format:
+{
+  "issue": "Wall Crack",
+  "severity": "Medium",
+  "recommendation": {
+    "productId": "...",
+    "name": "UltraTech Seal & Dry"
+  },
+  "reasoning": "AI-based explanation",
+  "additionalProducts": [],
+  "diagnosticId": "..."
+}
+
+If no product match:
+1. Create SupportTicket
+2. Save AIRequest
+3. Return escalation response
+
+---------------------------------------------------
+AI SERVICE REQUIREMENTS
+---------------------------------------------------
+
+Use Python FastAPI microservice.
+
+Endpoint:
+POST http://localhost:8000/analyze
+
+Use:
+- TensorFlow
+- MobileNetV2
+- PIL
+- NumPy
+
+Node.js backend communicates with AI service using:
+- axios
+- form-data
+
+Do NOT train custom models now.
+Use lightweight pretrained approach.
+
+---------------------------------------------------
+FILE UPLOAD REQUIREMENTS
+---------------------------------------------------
+
+Use multer:
+- uploads/
+- image mime validation
+- file size limits
+
+Serve uploads statically:
+app.use("/uploads", express.static("uploads"))
+
+---------------------------------------------------
+ERROR FORMAT
+---------------------------------------------------
+
+ALL APIs must return standardized errors:
+
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Email is invalid"
+  }
+}
+
+Supported error codes:
+- VALIDATION_ERROR
+- NOT_FOUND
+- CONFLICT
+- UNAUTHORIZED
+- FORBIDDEN
+- AI_PROVIDER_ERROR
+- INTERNAL_SERVER_ERROR
+
+---------------------------------------------------
+SECURITY REQUIREMENTS
+---------------------------------------------------
+
+Implement:
+- bcrypt hashing
+- JWT middleware
+- protected routes
+- input validation
+- rate-limit ready structure
+- CORS setup
+- environment variables
+
+Use:
+.env
+
+Required env:
+PORT=
+MONGO_URI=
+JWT_SECRET=
+
+---------------------------------------------------
+PROJECT STRUCTURE
+---------------------------------------------------
+
+src/
+├── config/
+├── controllers/
+├── middlewares/
+├── models/
+├── routes/
+├── services/
+├── utils/
+├── app.js
+
+---------------------------------------------------
+SERVICES REQUIRED
+---------------------------------------------------
+
+services/
+- ai.service.js
+- chatbot.service.js
+- auth.service.js
+- otp.service.js
+- product.service.js
+- support.service.js
+
+---------------------------------------------------
+DELIVERY REQUIREMENT
+---------------------------------------------------
+
+Generate:
+1. Full runnable code
+2. Mongoose schemas
+3. Controllers
+4. Routes
+5. Middleware
+6. Multer config
+7. JWT setup
+8. AI integration service
+9. CURL examples
+10. package.json
+11. .env.example
+12. Error handling middleware
+
+The implementation must be:
+- frontend-compatible
+- scalable
+- cleanly modularized
+- production-oriented
+- fully working
